@@ -58,16 +58,17 @@ public class BSP : MonoBehaviour
     (Rect, Rect) Split(Rect room, int seed, bool splitVertically)
     {
         Random random = new Random(seed);
-        
 
-        int split = splitVertically ? (int)room.width / 2 + random.Next((int)(room.x + room.width * minClamp), (int)(room.x + room.width * maxClamp))
-                                    : (int)room.height / 2 + random.Next((int)(room.y + room.height * minClamp), (int)(room.y + room.height * maxClamp));
+        float min = splitVertically ? room.width * minClamp : room.height * minClamp;
+        float max = splitVertically ? room.width * maxClamp : room.height * maxClamp;
+        int split = splitVertically ? (int)(room.x + random.NextDouble() * (max - min) + min)
+                                    : (int)(room.y + random.NextDouble() * (max - min) + min);
 
-        Rect firstPart = splitVertically ? new Rect(room.x, room.y, split, room.height)
-                                         : new Rect(room.x, room.y, room.width, split);
+        Rect firstPart = splitVertically ? new Rect(room.x, room.y, split - room.x, room.height)
+                                         : new Rect(room.x, room.y, room.width, split - room.y);
 
-        Rect secondPart = splitVertically ? new Rect(split, room.y, room.width - split, room.height)
-                                          : new Rect(room.x, split, room.width, room.height - split);
+        Rect secondPart = splitVertically ? new Rect(split, room.y, room.width - (split - room.x), room.height)
+                                          : new Rect(room.x, split, room.width, room.height - (split - room.y));
 
         Debug.Log($"First: {firstPart}");
         Debug.Log($"Second: {secondPart}");
