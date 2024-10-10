@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
@@ -7,8 +8,16 @@ public class BSP : MonoBehaviour
     private Rect room;
     public int seed;
     public int depth = 5;
-    
-    public void Start()
+    private Random random;
+
+
+    private void Start()
+    {
+        random = new Random(seed);
+    }
+
+    [ContextMenu("Launch")]
+    public void Launch()
     {
         Rect root = new Rect(0, 0, 100, 100);
 
@@ -19,16 +28,13 @@ public class BSP : MonoBehaviour
         foreach (Rect rect in rects)
         {
             DrawRoom(rect);
+            Vector2 center = GetRoomsCenter(rect);
+            DrawCenter(center);
         }
-        
-        
-        //DisplayRooms();
     }
     
     public List<Rect> _recursiveSplit(List<Rect> rects, int depth, bool splitVertically) {
         if (depth == 0) return rects;
-        // Chose randomly a room to cut 
-        // Rect roomToCut = rects[UnityEngine.Random.Range(0, rects.Count)];
         // Chose the biggest room to cut
         Rect roomToCut = GetLargestRoom(rects);
         // Cut the room
@@ -44,85 +50,33 @@ public class BSP : MonoBehaviour
     
     (Rect, Rect) Split(Rect room, int seed, bool splitVertically)
     {
-        Random random = new Random(seed);
        // bool splitVertically = random.Next(0, 2) == 0; // random 0 or 1 to decide if we split vertically or horizontally
-        (Rect, Rect) splitRooms;
         if (splitVertically)
-        {
-            splitRooms = SplitVertically(room, random);
+        {        
+            //this will cut in the middle but with a random offset
+            int split = (int)room.width / 2 + random.Next(-10, 10);
+            Rect left = new Rect(room.x, room.y, split, room.height);
+            Rect right = new Rect(split, room.y, room.width - split, room.height);
+            Debug.Log("Left: " + left);
+            Debug.Log("Right: " + right);
+            return (left, right);
         }
         else
         {
-            splitRooms = SplitHorizontally(room, random);
+            //this will cut in the middle but with a random offset
+            int split = (int)room.height / 2 + random.Next(-10, 10);
+            Rect top = new Rect(room.x, room.y, room.width, split); 
+            Rect bottom = new Rect(room.x, split, room.width, room.height - split);
+            Debug.Log("Top: " + top);
+            Debug.Log("Bottom: " + bottom);
+            return (top, bottom);
         }
-
-        return splitRooms;
     }
     
-    (Rect, Rect) SplitVertically(Rect room, Random random)
-    {
-        List<Rect> rects = new List<Rect>();
-        //this will cut randomly :
-        //int split = random.Next((int)room.x, (int)room.width);
-        //this will cut in the middle :
-        //int split = (int)room.width / 2;
-        //this will cut in the middle but with a random offset
-        int split = (int)room.width / 2 + random.Next(-10, 10);
-        Rect left = new Rect(room.x, room.y, split, room.height);
-        Rect right = new Rect(split, room.y, room.width - split, room.height);
-        Debug.Log("Left: " + left);
-        Debug.Log("Right: " + right);
-        
-        /*//Calculate areas
-        
-        float leftArea = left.width * left.height;
-        float rightArea = right.width * right.height;
-        
-        //chose the greatest rect
-        
-        Rect greatestRect = leftArea > rightArea ? left : right;
-        
-        //check if it's not too small to split 
-        if (greatestRect.width > minValue && greatestRect.height > minValue)
-        {
-            SplitHorizontally(greatestRect, random);
-        }*/
-      
-
-        return (left, right);
-    }
-
-    (Rect, Rect) SplitHorizontally(Rect room, Random random)
-    {
-        //this will cut randomly :
-        //int split = random.Next((int)room.y, (int)room.height);
-        //this will cut in the middle :
-        //int split = (int)room.height / 2;
-        //this will cut in the middle but with a random offset
-        int split = (int)room.height / 2 + random.Next(-10, 10);
-        Rect top = new Rect(room.x, room.y, room.width, split); 
-        Rect bottom = new Rect(room.x, split, room.width, room.height - split);
-        Debug.Log("Top: " + top);
-        Debug.Log("Bottom: " + bottom);
-        
-        /*float topArea = top.width * top.height;
-        float bottomArea = bottom.width * bottom.height;
-        
-        Rect greatestRect = topArea > bottomArea ? top : bottom;
-        
-        if (greatestRect.width > minValue && greatestRect.height > minValue)
-        {
-            SplitVertically(greatestRect, random);
-        }*/
-        
-        return (top, bottom);
-    }
-    
-
    Rect GetLargestRoom(List<Rect> rooms) {
         Rect largestRoom = rooms[0];
         foreach (Rect room in rooms) {
-            if (room.x * room.y > largestRoom.x * largestRoom.y) {
+            if (room.width * room.height > largestRoom.width * largestRoom.height) {
                 largestRoom = room;
             }
         }
@@ -141,12 +95,21 @@ public class BSP : MonoBehaviour
         Debug.DrawLine(bottomRight, bottomLeft, Color.red, 10f);
         Debug.DrawLine(bottomLeft, topLeft, Color.red, 10f);
     }
-
-    /*private void OnDrawGizmos()
+    
+    private Vector2 GetRoomsCenter(Rect rect)
     {
-        foreach (var VARIABLE in roo)
-        {
-            throw new NotImplementedException();
-        }
-    }*/
+        return new Vector2(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    }
+    
+    private void DrawCenter(Vector2 center)
+    {
+        float crossSize = 5f;
+        Vector3 horizontalStart = new Vector3(center.x - crossSize, center.y, 0);
+        Vector3 horizontalEnd = new Vector3(center.x + crossSize, center.y, 0);
+        Vector3 verticalStart = new Vector3(center.x, center.y - crossSize, 0);
+        Vector3 verticalEnd = new Vector3(center.x, center.y + crossSize, 0);
+
+        Debug.DrawLine(horizontalStart, horizontalEnd, Color.blue, 10f);
+        Debug.DrawLine(verticalStart, verticalEnd, Color.blue, 10f);
+    }
 }
