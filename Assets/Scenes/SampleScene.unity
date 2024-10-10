@@ -258,8 +258,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61bc52fe3be85b9409d901ede76475e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seed: 2
-  minValue: 5
+  seed: 4
+  depth: 5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
