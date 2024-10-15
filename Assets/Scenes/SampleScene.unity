@@ -258,10 +258,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61bc52fe3be85b9409d901ede76475e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seed: 2
-  depth: 3
-  minClamp: 0.2
-  maxClamp: 0.8
+  seed: 13
+  depth: 6
+  firstRoomWidth: 100
+  firstRoomHeight: 250
+  FirstSplitRandom: 0
+  minClamp: 0
+  maxClamp: 1
+  roomSelectionStrategy: 2
+  splitStrategy: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

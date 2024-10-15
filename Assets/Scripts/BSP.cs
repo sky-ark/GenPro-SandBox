@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
@@ -7,8 +8,30 @@ public class BSP : MonoBehaviour
     private Rect room;
     public int seed;
     public int depth = 5;
+    public float firstRoomWidth = 100, firstRoomHeight = 100;
     private Random random;
+    public bool FirstSplitRandom = true;
     public float minClamp = .2f, maxClamp = .8f;
+
+    public enum RoomSelectionStrategy
+    {
+        LargestArea,
+        LargestDifference,
+        Random
+    }
+
+    public RoomSelectionStrategy roomSelectionStrategy = RoomSelectionStrategy.LargestArea;
+
+    public enum SplitStrategy
+    {
+        Alternate,
+        Random,
+        LongestSide
+    }
+    [Tooltip("Split's direction Strategy")]
+    public SplitStrategy splitStrategy = SplitStrategy.Alternate;
+
+    private bool splitVertically = true;
 
     private void Start()
     {
@@ -18,11 +41,14 @@ public class BSP : MonoBehaviour
     [ContextMenu("Launch")]
     public void Launch()
     {
-        Rect root = new Rect(0, 0, 100, 100);
+        Rect root = new Rect(0, 0, firstRoomWidth, firstRoomHeight);
 
         List<Rect> rects = new List<Rect>();
         rects.Add(root);
-        rects = _recursiveSplit(rects, depth, true);
+
+        // if Random is true, then we will randomly choose between vertical and horizontal split, otherwise we will always split vertically
+        splitVertically = FirstSplitRandom ? random.Next(0, 2) == 1 : true;
+        rects = _recursiveSplit(rects, depth);
 
         foreach (Rect rect in rects)
         {
@@ -34,15 +60,18 @@ public class BSP : MonoBehaviour
         }
     }
 
-    public List<Rect> _recursiveSplit(List<Rect> rects, int depth, bool splitVertically)
+    public List<Rect> _recursiveSplit(List<Rect> rects, int depth)
     {
         if (depth == 0) return rects;
 
-        // Chose the biggest room to cut
-        Rect roomToCut = GetLargestRoom(rects);
+        // Chose the next room to cut based on the selected strategy
+        Rect roomToCut = GetNextRoomToCut(rects);
+
+        // Determine the splitting strategy
+        bool currentSplitVertically = GetSplitDirection(roomToCut);
 
         // Cut the room
-        (Rect, Rect) tuple = Split(roomToCut, seed, splitVertically);
+        (Rect, Rect) tuple = Split(roomToCut, currentSplitVertically, depth);
 
         // Remove the cutted room
         rects.Remove(roomToCut);
@@ -52,31 +81,44 @@ public class BSP : MonoBehaviour
         rects.Add(tuple.Item2);
 
         // Go to next iteration
-        return _recursiveSplit(rects, depth - 1, !splitVertically);
+        return _recursiveSplit(rects, depth - 1);
     }
 
-    (Rect, Rect) Split(Rect room, int seed, bool splitVertically)
+    private bool GetSplitDirection(Rect room)
     {
-        Random random = new Random(seed);
-
-        float min = splitVertically ? room.width * minClamp : room.height * minClamp;
-        float max = splitVertically ? room.width * maxClamp : room.height * maxClamp;
-        int split = splitVertically ? (int)(room.x + random.NextDouble() * (max - min) + min)
-                                    : (int)(room.y + random.NextDouble() * (max - min) + min);
-
-        Rect firstPart = splitVertically ? new Rect(room.x, room.y, split - room.x, room.height)
-                                         : new Rect(room.x, room.y, room.width, split - room.y);
-
-        Rect secondPart = splitVertically ? new Rect(split, room.y, room.width - (split - room.x), room.height)
-                                          : new Rect(room.x, split, room.width, room.height - (split - room.y));
-
-        Debug.Log($"First: {firstPart}");
-        Debug.Log($"Second: {secondPart}");
-
-        return (firstPart, secondPart);
+        switch (splitStrategy)
+        {
+            case SplitStrategy.Alternate:
+                // Alternate between vertical and horizontal splits
+                splitVertically = !splitVertically;
+                return splitVertically;
+            case SplitStrategy.Random:
+                // Randomly choose between vertical and horizontal splits
+                return random.Next(0, 2) == 1;
+            case SplitStrategy.LongestSide:
+                // Split along the longest side
+                return room.width > room.height;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
 
-    Rect GetLargestRoom(List<Rect> rooms)
+    Rect GetNextRoomToCut(List<Rect> rooms)
+    {
+        switch (roomSelectionStrategy)
+        {
+            case RoomSelectionStrategy.LargestArea:
+                return GetLargestRoomByArea(rooms);
+            case RoomSelectionStrategy.LargestDifference:
+                return GetLargestRoomByDifference(rooms);
+            case RoomSelectionStrategy.Random:
+                return GetRandomRoom(rooms);
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    Rect GetLargestRoomByArea(List<Rect> rooms)
     {
         Rect largestRoom = rooms[0];
         float largestArea = rooms[0].width * rooms[0].height;
@@ -92,6 +134,60 @@ public class BSP : MonoBehaviour
         }
 
         return largestRoom;
+    }
+
+    Rect GetLargestRoomByDifference(List<Rect> rooms)
+    {
+        Rect largestRoom = rooms[0];
+        float largestDifference = Mathf.Abs(rooms[0].width - rooms[0].height);
+
+        foreach (Rect room in rooms)
+        {
+            float difference = Mathf.Abs(room.width - room.height);
+            if (difference > largestDifference)
+            {
+                largestRoom = room;
+                largestDifference = difference;
+            }
+        }
+
+        return largestRoom;
+    }
+
+    Rect GetRandomRoom(List<Rect> rooms)
+    {
+        return rooms[random.Next(rooms.Count)];
+    }
+
+    (Rect, Rect) Split(Rect room, bool splitVertically, int depth)
+    {
+        Random splitRandom = new Random(seed + depth);
+
+        float min = splitVertically ? room.width * minClamp : room.height * minClamp;
+        float max = splitVertically ? room.width * maxClamp : room.height * maxClamp;
+
+        // Ensure the split point is within the range [min, max]
+        float splitPoint = splitVertically
+            ? room.x + (float)(splitRandom.NextDouble() * (max - min) + min)
+            : room.y + (float)(splitRandom.NextDouble() * (max - min) + min);
+
+        Rect firstPart, secondPart;
+
+        if (splitVertically)
+        {
+            firstPart = new Rect(room.x, room.y, splitPoint - room.x, room.height);
+            secondPart = new Rect(splitPoint, room.y, room.width - (splitPoint - room.x), room.height);
+        }
+        else
+        {
+            firstPart = new Rect(room.x, room.y, room.width, splitPoint - room.y);
+            secondPart = new Rect(room.x, splitPoint, room.width, room.height - (splitPoint - room.y));
+        }
+
+        Debug.Log($"First: {firstPart}");
+        Debug.Log($"Second: {secondPart}");
+
+        return (firstPart, secondPart);
     }
 
     void DrawRoom(Rect room)
