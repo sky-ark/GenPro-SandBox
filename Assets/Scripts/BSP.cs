@@ -32,6 +32,8 @@ public class BSP : MonoBehaviour
     public SplitStrategy splitStrategy = SplitStrategy.Alternate;
 
     private bool splitVertically = true;
+    List<Rect> rects = new List<Rect>();
+
 
     private void Start()
     {
@@ -42,8 +44,8 @@ public class BSP : MonoBehaviour
     public void Launch()
     {
         Rect root = new Rect(0, 0, firstRoomWidth, firstRoomHeight);
-
-        List<Rect> rects = new List<Rect>();
+        
+        rects.Clear();
         rects.Add(root);
 
         // if Random is true, then we will randomly choose between vertical and horizontal split, otherwise we will always split vertically
@@ -58,6 +60,11 @@ public class BSP : MonoBehaviour
             Debug.Log($"Center of {rect}: {center}");
             DrawCenter(center);
         }
+    }
+    
+    public List<Rect> GetRects()
+    {
+        return rects;
     }
 
     public List<Rect> _recursiveSplit(List<Rect> rects, int depth)
