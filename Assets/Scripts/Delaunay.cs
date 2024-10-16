@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Delaunay : MonoBehaviour
 {
+    public Shader gradiantShader;
     public BSP bsp;
     private List<Rect> rects;
     private List<Vector2> points;
@@ -28,6 +29,7 @@ public class Delaunay : MonoBehaviour
         // Draw only Delaunay triangles for 10 seconds
         DrawTriangles(delaunayTriangles, Color.green, 10f);
         // DrawCircumcircles(delaunayTriangles, Color.magenta, 10f);
+        DrawFilledTriangles(delaunayTriangles);
     }
 
     // Get the rectangles from the BSP script
@@ -131,8 +133,65 @@ public class Delaunay : MonoBehaviour
             Vector2 center;
             float radius;
             GetCircumcircle(triangle, out center, out radius);
-            
+
+            // Draw the circumcircle
+            Vector2 start = new Vector2(center.x + radius, center.y);
+            for (int i = 0; i < 360; i++)
+            {
+                float angle = i * Mathf.Deg2Rad;
+                Vector2 end = new Vector2(center.x + radius * Mathf.Cos(angle), center.y + radius * Mathf.Sin(angle));
+                Debug.DrawLine(start, end, color, duration);
+                start = end;
+            }
         }
+    }
+
+    private void DrawFilledTriangles(List<Triangle> triangles)
+    {
+        Mesh mesh = new Mesh();
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> trianglesList = new List<int>();
+        List<Color> colors = new List<Color>();
+
+        for (int i = 0; i < triangles.Count; i++)
+        {
+            Triangle triangle = triangles[i];
+            vertices.Add(triangle.p1);
+            vertices.Add(triangle.p2);
+            vertices.Add(triangle.p3);
+            trianglesList.Add(i * 3);
+            trianglesList.Add(i * 3 + 1);
+            trianglesList.Add(i * 3 + 2);
+
+            Color color = GetGradientColor(i, triangles.Count);
+            colors.Add(color);
+            colors.Add(color);
+            colors.Add(color);
+        }
+
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = trianglesList.ToArray();
+        mesh.colors = colors.ToArray();
+
+        MeshFilter meshFilter = GetComponent<MeshFilter>();
+        if (meshFilter == null)
+        {
+            meshFilter = gameObject.AddComponent<MeshFilter>();
+        }
+        meshFilter.mesh = mesh;
+
+        MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+        if (meshRenderer == null)
+        {
+            meshRenderer = gameObject.AddComponent<MeshRenderer>();
+        }
+        meshRenderer.material = new Material(shader:gradiantShader);
+    }
+
+    private Color GetGradientColor(int index, int total)
+    {
+        float t = (float)index / (total - 1);
+        return Color.HSVToRGB(t,1,1);
     }
 
     class Triangle
