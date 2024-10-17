@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,39 +6,12 @@ public class Delaunay : MonoBehaviour
 {
     public BSP bsp;
     private List<Rect> rects;
-    private List<Vector2> points;
+    public List<Vector2> points;
     private List<Triangle> allTriangles;
     private List<Triangle> delaunayTriangles;
     private List<Edge> edges;
 
-    [ContextMenu("Launch")]
-    private void Launch()
-    {
-        // Call bsp to launch the rectangles calculation
-        bsp.Launch();
-        // Get the rectangles from the BSP script
-        rects = bsp.GetRects();
-        // Generate points from the centers of the rectangles
-        GeneratePointsFromRects();
-        // Perform Delaunay triangulation
-        Triangulation();
-        // Generate edges from points
-        GenerateEdges();
-        // Perform Kruskal's algorithm
-        List<Edge> mst = KruskalMST(edges);
-        // Draw all triangles and circles for 3 seconds
-        // DrawTriangles(allTriangles, Color.yellow, 3f);
-        // DrawCircumcircles(allTriangles, Color.red, 3f);
-        // Draw only Delaunay triangles for 10 seconds
-        DrawTriangles(delaunayTriangles, Color.green, 10f);
-        // Draw the minimum spanning tree
-        DrawMST(mst, Color.magenta, 10f);
-
-        // DrawCircumcircles(delaunayTriangles, Color.magenta, 10f);
-    }
-
-    // Get the rectangles from the BSP script
-    private void GeneratePointsFromRects()
+    public List<Vector2> GeneratePointsFromRects(List<Rect> rects)
     {
         points = new List<Vector2>();
 
@@ -48,9 +20,11 @@ public class Delaunay : MonoBehaviour
             Vector2 center = new Vector2(rect.x + rect.width / 2, rect.y + rect.height / 2);
             points.Add(center);
         }
+
+        return points;
     }
 
-    private void Triangulation()
+    public List<Triangle> Triangulation(List<Vector2> points)
     {
         allTriangles = new List<Triangle>();
         delaunayTriangles = new List<Triangle>();
@@ -70,7 +44,7 @@ public class Delaunay : MonoBehaviour
                             Vector2 p3 = points[k];
                             Triangle triangle = new Triangle(p1, p2, p3);
                             allTriangles.Add(triangle);
-                            if (IsDelaunay(triangle))
+                            if (IsDelaunay(triangle, points))
                             {
                                 delaunayTriangles.Add(triangle);
                             }
@@ -79,9 +53,11 @@ public class Delaunay : MonoBehaviour
                 }
             }
         }
+
+        return delaunayTriangles;
     }
 
-    private bool IsDelaunay(Triangle triangle)
+    private bool IsDelaunay(Triangle triangle, List<Vector2> points)
     {
         Vector2 center;
         float radius;
@@ -121,29 +97,7 @@ public class Delaunay : MonoBehaviour
         radius = Vector2.Distance(center, p1);
     }
 
-    private void DrawTriangles(List<Triangle> triangles, Color color, float duration)
-    {
-        if (triangles == null) return;
-        foreach (var triangle in triangles)
-        {
-            Debug.DrawLine(triangle.p1, triangle.p2, color, duration);
-            Debug.DrawLine(triangle.p2, triangle.p3, color, duration);
-            Debug.DrawLine(triangle.p3, triangle.p1, color, duration);
-        }
-    }
-
-    private void DrawCircumcircles(List<Triangle> triangles, Color color, float duration)
-    {
-        foreach (var triangle in triangles)
-        {
-            Vector2 center;
-            float radius;
-            GetCircumcircle(triangle, out center, out radius);
-
-        }
-    }
-
-    private void GenerateEdges()
+    public List<Edge> GenerateEdges(List<Vector2> points)
     {
         edges = new List<Edge>();
 
@@ -157,9 +111,11 @@ public class Delaunay : MonoBehaviour
                 edges.Add(new Edge(i, j, weight));
             }
         }
+
+        return edges;
     }
 
-    private List<Edge> KruskalMST(List<Edge> edges)
+    public List<Edge> KruskalMST(List<Edge> edges)
     {
         List<Edge> result = new List<Edge>();
         int i = 0;
@@ -209,17 +165,7 @@ public class Delaunay : MonoBehaviour
         parent[xroot] = yroot;
     }
 
-    private void DrawMST(List<Edge> mst, Color color, float duration)
-    {
-        foreach (var edge in mst)
-        {
-            Vector2 p1 = points[edge.src];
-            Vector2 p2 = points[edge.dest];
-            Debug.DrawLine(p1, p2, color, duration);
-        }
-    }
-
-    class Triangle
+    public class Triangle
     {
         // Triangle is made up of 3 points
         public Vector2 p1, p2, p3;
@@ -231,7 +177,7 @@ public class Delaunay : MonoBehaviour
         }
     }
 
-    class Edge : IComparable<Edge>
+    public class Edge : IComparable<Edge>
     {
         public int src, dest;
         public float weight;
