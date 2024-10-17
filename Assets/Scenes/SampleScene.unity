@@ -224,6 +224,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1759679236}
   - component: {fileID: 1759679237}
+  - component: {fileID: 1759679238}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -267,6 +268,19 @@ MonoBehaviour:
   maxClamp: 1
   roomSelectionStrategy: 2
   splitStrategy: 2
+--- !u!114 &1759679238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1759679234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01e95d68e590f5b4fb6d9f10996d1ae1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bsp: {fileID: 1759679237}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
