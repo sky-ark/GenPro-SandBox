@@ -5,6 +5,8 @@ using Random = System.Random;
 
 public class BSP : MonoBehaviour
 {
+    public bool RemoveRandomRects = false;
+    public int RoomToRemove = 0;
     private Rect room;
     public int seed;
     public int depth = 5;
@@ -64,7 +66,18 @@ public class BSP : MonoBehaviour
     
     public List<Rect> GetRects()
     {
+        if(RoomToRemove>rects.Count)
+            throw new Exception("RoomToRemove is greater than the number of rooms");
+        if (RemoveRandomRects)
+        {
+            for (int i = 0; i < RoomToRemove; i++)
+            {
+                int index = random.Next(0, RoomToRemove);
+                rects.RemoveAt(index);
+            }
+        }
         return rects;
+        
     }
 
     public List<Rect> _recursiveSplit(List<Rect> rects, int depth)

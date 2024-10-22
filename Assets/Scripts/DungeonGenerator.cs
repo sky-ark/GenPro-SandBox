@@ -39,7 +39,7 @@ public class DungeonGenerator : MonoBehaviour
         // Draw rooms
         DrawRooms(rects);
         // Draw doors
-        DrawDoors(mst, points);
+        DrawCorridors(mst, points);
         // Draw MST
         delaunay.DrawMST(mst, points);
     }
@@ -102,7 +102,99 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
-    private void DrawDoors(List<Delaunay.Edge> mst, List<Vector2> points)
+   private void DrawCorridors(List<Delaunay.Edge> mst, List<Vector2> points)
+{
+    foreach (var edge in mst)
+    {
+        Vector2 pointA = points[edge.src];
+        Vector2 pointB = points[edge.dest];
+
+        int x0 = (int)pointA.x;
+        int y0 = (int)pointA.y;
+        int x1 = (int)pointB.x;
+        int y1 = (int)pointB.y;
+
+        // Calculer les distances sur les axes X et Y
+        int dx = Mathf.Abs(x1 - x0);
+        int dy = Mathf.Abs(y1 - y0);
+
+        // Calculer les longueurs des portes pour les deux alignements
+        int doorLengthX = CalculateDoorLength(x0, y0, x1, y0, true);
+        int doorLengthY = CalculateDoorLength(x0, y0, x0, y1, false);
+
+        // Déterminer s'il vaut mieux aligner sur X ou Y
+        bool alignOnX = doorLengthX <= doorLengthY;
+
+        if (alignOnX)
+        {
+            // Aligner sur X
+            int x = x0;
+            for (int y = y0; y != y1; y += (y1 > y0 ? 1 : -1))
+            {
+                Vector3Int position = new Vector3Int(x, y, 0);
+                Debug.DrawLine(new Vector3(x, y, 0), new Vector3(x + 1, y, 0), Color.yellow, 10f);
+                PlaceDoorIfWall(position);
+            }
+        }
+        else
+        {
+            // Aligner sur Y
+            int y = y0;
+            for (int x = x0; x != x1; x += (x1 > x0 ? 1 : -1))
+            {
+                Vector3Int position = new Vector3Int(x, y, 0);
+                Debug.DrawLine(new Vector3(x, y, 0), new Vector3(x, y + 1, 0), Color.yellow, 10f);
+                PlaceDoorIfWall(position);
+            }
+        }
+    }
+}
+
+private int CalculateDoorLength(int x0, int y0, int x1, int y1, bool alignOnX)
+{
+    int doorLength = 0;
+
+    if (alignOnX)
+    {
+        // Aligner sur X
+        int x = x0;
+        for (int y = y0; y != y1; y += (y1 > y0 ? 1 : -1))
+        {
+            Vector3Int position = new Vector3Int(x, y, 0);
+            if (wallTilemap.GetTile(position) == wallTile)
+            {
+                doorLength++;
+            }
+        }
+    }
+    else
+    {
+        // Aligner sur Y
+        int y = y0;
+        for (int x = x0; x != x1; x += (x1 > x0 ? 1 : -1))
+        {
+            Vector3Int position = new Vector3Int(x, y, 0);
+            if (wallTilemap.GetTile(position) == wallTile)
+            {
+                doorLength++;
+            }
+        }
+    }
+
+    return doorLength;
+}
+
+private void PlaceDoorIfWall(Vector3Int position)
+{
+    if (wallTilemap.GetTile(position) == wallTile)
+    {
+        doorTilemap.SetTile(position, doorTile);
+    }
+}
+
+
+
+    /*private void DrawDoors(List<Delaunay.Edge> mst, List<Vector2> points)
     {
         foreach (var edge in mst)
         {
@@ -145,5 +237,5 @@ public class DungeonGenerator : MonoBehaviour
                 }
             }
         }
-    }
+    }*/
 }
