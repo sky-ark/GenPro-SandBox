@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -13,7 +14,8 @@ public class DungeonGenerator : MonoBehaviour
     public Tile wallTile;
     public Tile doorTile;
     public List<Tile> coloredFloorTiles;
-    public int doorWidth = 1; // New parameter to control door width
+    public int doorLength = 1; // Longueur de la porte
+    public float doorOffset = 0.5f; // Position de la porte par rapport à la largeur/longueur (0.5 = au milieu)
 
     [ContextMenu("Generate Dungeon")]
     private void GenerateDungeon()
@@ -39,7 +41,7 @@ public class DungeonGenerator : MonoBehaviour
         // Draw rooms
         DrawRooms(rects);
         // Draw doors
-        DrawDoors(mst, points);
+        DrawDoors(mst, points, rects);
         // Draw MST
         delaunay.DrawMST(mst, points);
     }
@@ -102,48 +104,66 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
-    private void DrawDoors(List<Delaunay.Edge> mst, List<Vector2> points)
+    private void DrawDoors(List<Delaunay.Edge> mst, List<Vector2> points, List<Rect> rects)
     {
         foreach (var edge in mst)
         {
             Vector2 pointA = points[edge.src];
             Vector2 pointB = points[edge.dest];
 
-            int x0 = (int)pointA.x;
-            int y0 = (int)pointA.y;
-            int x1 = (int)pointB.x;
-            int y1 = (int)pointB.y;
+            Rect rectA = rects[edge.src];
+            Rect rectB = rects[edge.dest];
 
-            int dx = Mathf.Abs(x1 - x0);
-            int dy = Mathf.Abs(y1 - y0);
-            int sx = x0 < x1 ? 1 : -1;
-            int sy = y0 < y1 ? 1 : -1;
-            int err = dx - dy;
-
-            while (true)
+            if (IsVertical(rectA, rectB))
             {
-                for (int i = -doorWidth / 2; i <= doorWidth / 2; i++)
+                Debug.Log($"Placing vertical door between rectA: {rectA} and rectB: {rectB}");
+                int x = (int)(rectA.x + rectA.width);
+                int startY = (int)(rectA.y + rectA.height * doorOffset);
+                int endY = startY + doorLength;
+                for (int y = startY; y < endY; y++)
                 {
-                    Vector3Int doorPosition = new Vector3Int(x0 + (dy == 0 ? 0 : i), y0 + (dx == 0 ? 0 : i), 0);
-                    if (wallTilemap.GetTile(doorPosition) == wallTile)
-                    {
-                        doorTilemap.SetTile(doorPosition, doorTile);
-                    }
-                }
-
-                if (x0 == x1 && y0 == y1) break;
-                int e2 = 2 * err;
-                if (e2 > -dy)
-                {
-                    err -= dy;
-                    x0 += sx;
-                }
-                if (e2 < dx)
-                {
-                    err += dx;
-                    y0 += sy;
+                    PlaceDoor(x, y);
+                    PlaceDoor(x - 2, y); // Place door on the adjacent wall
                 }
             }
+            else if (IsHorizontal(rectA, rectB))
+            {
+                Debug.Log($"Placing horizontal door between rectA: {rectA} and rectB: {rectB}");
+                int y = (int)(rectA.y + rectA.height);
+                int startX = (int)(rectA.x + rectA.width * doorOffset);
+                int endX = startX + doorLength;
+                for (int x = startX; x < endX; x++)
+                {
+                    PlaceDoor(x, y);
+                    PlaceDoor(x, y - 2); // Place door on the adjacent wall
+                }
+            }
+        }
+    }
+
+    public float tolerance = 0.1f; // Tolerance value
+
+    private bool IsVertical(Rect rectA, Rect rectB)
+    {
+        bool result = Math.Abs(rectA.x - (rectB.x + rectB.width)) < tolerance || Math.Abs(rectA.x + rectA.width - rectB.x) < tolerance;
+        Debug.Log($"IsVertical: {result} (rectA: {rectA}, rectB: {rectB})");
+        return result;
+    }
+
+    private bool IsHorizontal(Rect rectA, Rect rectB)
+    {
+        bool result = Math.Abs(rectA.y - (rectB.y + rectB.height)) < tolerance || Math.Abs(rectA.y + rectA.height - rectB.y) < tolerance;
+        Debug.Log($"IsHorizontal: {result} (rectA: {rectA}, rectB: {rectB})");
+        return result;
+    }
+
+    private void PlaceDoor(int x, int y)
+    {
+        Debug.Log($"Placing door at {x}, {y}");
+        Vector3Int doorPosition = new Vector3Int(x, y, 0);
+        if (wallTilemap.GetTile(doorPosition) == wallTile)
+        {
+            doorTilemap.SetTile(doorPosition, doorTile);
         }
     }
 }
