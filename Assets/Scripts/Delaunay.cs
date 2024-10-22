@@ -194,4 +194,17 @@ public class Delaunay : MonoBehaviour
             return this.weight.CompareTo(compareEdge.weight);
         }
     }
+    
+    public void DrawMST(List<Delaunay.Edge> mst, List<Vector2> points)
+    {
+        foreach (var edge in mst)
+        {
+            Vector2 pointA = points[edge.src];
+            Vector2 pointB = points[edge.dest];
+
+            Debug.DrawLine(new Vector3(pointA.x, pointA.y, 0), new Vector3(pointB.x, pointB.y, 0), Color.green, 10f);
+        }
+    }
 }
+
+
